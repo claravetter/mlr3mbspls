@@ -540,9 +540,9 @@ vignette("quickstart", package = "mlr3mbspls")
 If you use `mlr3mbspls` in academic work, cite:
 
 ```text
-Coors S, Vetter CS (2026). mlr3mbspls: Multi-Block Sparse Partial Least
+Vetter CS, Coors S (2026). mlr3mbspls: Multi-Block Sparse Partial Least
 Squares for mlr3. R package version 0.4.0.
-https://github.com/coorsaa/mlr3mbspls
+https://github.com/claravetter/mlr3mbspls
 ```
 
 ## Getting help and contributing
