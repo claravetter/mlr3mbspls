@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![r-cmd-check](https://github.com/coorsaa/mlr3mbspls/actions/workflows/r-cmd-check.yml/badge.svg)](https://github.com/coorsaa/mlr3mbspls/actions/workflows/r-cmd-check.yml)
-[![pkgdown](https://github.com/coorsaa/mlr3mbspls/actions/workflows/pkgdown.yml/badge.svg)](https://github.com/coorsaa/mlr3mbspls/actions/workflows/pkgdown.yml)
+[![r-cmd-check](https://github.com/claravetter/mlr3mbspls/actions/workflows/r-cmd-check.yml/badge.svg)](https://github.com/claravetter/mlr3mbspls/actions/workflows/r-cmd-check.yml)
+[![pkgdown](https://github.com/claravetter/mlr3mbspls/actions/workflows/pkgdown.yml/badge.svg)](https://github.com/claravetter/mlr3mbspls/actions/workflows/pkgdown.yml)
 
 </div>
 
@@ -64,7 +64,7 @@ install.packages(c(
 ))
 install.packages("remotes")
 
-remotes::install_github("coorsaa/mlr3mbspls")
+remotes::install_github("claravetter/mlr3mbspls")
 ```
 
 Optional dataset adapters and plots use packages listed in `Suggests`, including
@@ -514,7 +514,7 @@ and build vignettes during installation (a Pandoc installation is required):
 
 ```r
 install.packages(c("knitr", "rmarkdown"))
-remotes::install_github("coorsaa/mlr3mbspls", build_vignettes = TRUE)
+remotes::install_github("claravetter/mlr3mbspls", build_vignettes = TRUE)
 vignette("quickstart", package = "mlr3mbspls")
 ```
 
@@ -548,7 +548,7 @@ https://github.com/claravetter/mlr3mbspls
 ## Getting help and contributing
 
 Ask questions and report bugs in the
-[issue tracker](https://github.com/Coorsaa/mlr3mbspls/issues).
+[issue tracker](https://github.com/claravetter/mlr3mbspls/issues).
 [CONTRIBUTING.md](CONTRIBUTING.md) describes what to include in an issue, how
 to contribute changes, and how the package is maintained.
 

@@ -2,7 +2,7 @@
 
 ## Getting help and reporting problems
 
-Use the [issue tracker](https://github.com/Coorsaa/mlr3mbspls/issues) for
+Use the [issue tracker](https://github.com/claravetter/mlr3mbspls/issues) for
 questions, bug reports and feature requests.
 
 - **Questions:** describe what you want to do and include the code you tried.

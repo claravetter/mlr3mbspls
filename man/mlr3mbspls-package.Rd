@@ -92,9 +92,10 @@ association tests on independent confirmation observations
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://claravetter.github.io/mlr3mbspls/}
+  \item \url{https://github.com/claravetter/mlr3mbspls}
   \item \url{https://mlr3.mlr-org.com}
-  \item \url{https://github.com/coorsaa/mlr3mbspls}
-  \item Report bugs at \url{https://github.com/coorsaa/mlr3mbspls/issues}
+  \item Report bugs at \url{https://github.com/claravetter/mlr3mbspls/issues}
 }
 
 }
