@@ -174,6 +174,39 @@ versions.
 
 ## Confirmatory inference
 
+- New `mbspls_participation()`: held-out, leave-one-centre-out test of block
+  participation. For every block of a component and every held-out centre it
+  tests whether the block's held-out score is associated with the composite of
+  the other blocks' held-out scores, with weights learned at the other centres
+  (exact permutation p-values within the centre, optionally within strata).
+  The number of centres with `p <= alpha / S` (`r_count`, and
+  `r_count_simultaneous` with `alpha / (K S)` for `K` blocks) is a lower
+  confidence bound for the number of centres at which the block participates.
+  It stays valid although whether a block participates at one centre depends
+  on the weights learned at the others. The Bonferroni partial conjunction
+  bound `r_hat` (unadjusted and simultaneous) is also reported; it is valid
+  when the null hypotheses do not depend on the training data, for example
+  for a frozen signature tested at independent centres. The learner may be a
+  GraphLearner with fixed budgets, an AutoTuner that tunes within each
+  training set, or a fitting function.
+- New `mbspls_partial_conjunction()`: Bonferroni partial conjunction p-values
+  and lower bounds from a matrix of centre-level p-values, valid under
+  arbitrary dependence for hypotheses fixed in advance, and the
+  fixed-threshold count `r_count` of p-values at most `level / S`, which stays
+  valid when the hypotheses depend on the data.
+- New `as_mbspls_participation()`: builds the same participation summary
+  from centre-level held-out results computed elsewhere, for example by a
+  custom leave-one-centre-out pipeline or in one external validation cohort.
+- New `autoplot()` method for participation results. `type = "centres"` shows
+  the held-out correlation of every block at every centre (filled where
+  `p <= alpha`, point area proportional to centre size) with the bounds in
+  columns (`rule = "count"`, the default, or `rule = "partial_conjunction"`),
+  optionally for further analyses through `compare`;
+  `type = "heldout"` contrasts training and held-out correlations per block.
+  With `compare`, `type = "heldout"` draws several analyses side by side, one
+  colour each. `order` and `limits` give several plots the same block order and axis, and
+  `unit` sets the word for the held-out unit in the labels (for example
+  `c("site", "sites")`).
 - New `mb_permutation_test()`: a complete-analysis permutation engine for one
   pre-specified statistic. It permutes the raw selected blocks, reruns a
   user-supplied analysis on the observed data and on every shuffle, and
