@@ -207,6 +207,18 @@ versions.
   colour each. `order` and `limits` give several plots the same block order and axis, and
   `unit` sets the word for the held-out unit in the labels (for example
   `c("site", "sites")`).
+- New `mbspls_feature_heldout_tests()`: the feature-level counterpart of the
+  participation test. At one held-out centre it tests, for every feature of
+  every block, whether the feature's held-out values are associated with the
+  composite of the other blocks' held-out scores (exact permutation p-values,
+  optionally within strata, or across modalities with `modality`). Training
+  and held-out data must have the same blocks, and the same columns within
+  every block, in the same order.
+- New `as_mbspls_feature_participation()`: combines the centre-level feature
+  tests into a replication bound per feature and a false discovery rate
+  decision ("participates at `r` or more centres"), optionally with the
+  weights of a reference signature; `autoplot()` draws the feature-level
+  signature, for several analyses side by side with `compare`.
 - New `mb_permutation_test()`: a complete-analysis permutation engine for one
   pre-specified statistic. It permutes the raw selected blocks, reruns a
   user-supplied analysis on the observed data and on every shuffle, and
