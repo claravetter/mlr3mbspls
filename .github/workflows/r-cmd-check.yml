@@ -125,13 +125,19 @@ jobs:
           install.packages("BiocManager")
           # Ensures Bioconductor repos match the current R version
           BiocManager::install("BiocParallel", ask = FALSE, update = FALSE)
-        
-          install.packages("remotes")
-          remotes::install_github(
-            "Jfortin1/neuroCombat_Rpackage@fbec46a61bc92bedb450b0e44addae4ce6afa934",
-            upgrade = "never",
-            dependencies = NA
+          install.packages("matrixStats")
+
+          # neuroCombat's Remotes field (bioc::release/BiocParallel) breaks
+          # remotes::install_github(), so install the pinned revision from its
+          # source archive after its hard dependencies.
+          archive = file.path(tempdir(), "neuroCombat.tar.gz")
+          download.file(
+            "https://codeload.github.com/Jfortin1/neuroCombat_Rpackage/tar.gz/fbec46a61bc92bedb450b0e44addae4ce6afa934",
+            archive,
+            mode = "wb"
           )
+          install.packages(archive, repos = NULL, type = "source")
+          stopifnot(requireNamespace("neuroCombat", quietly = TRUE))
         shell: Rscript {0}
 
       - uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
@@ -180,14 +186,21 @@ jobs:
       - name: Install neuroCombat and Bioconductor deps
         run: |
           install.packages("BiocManager")
+          # Ensures Bioconductor repos match the current R version
           BiocManager::install("BiocParallel", ask = FALSE, update = FALSE)
+          install.packages("matrixStats")
 
-          install.packages("remotes")
-          remotes::install_github(
-            "Jfortin1/neuroCombat_Rpackage@fbec46a61bc92bedb450b0e44addae4ce6afa934",
-            upgrade = "never",
-            dependencies = NA
+          # neuroCombat's Remotes field (bioc::release/BiocParallel) breaks
+          # remotes::install_github(), so install the pinned revision from its
+          # source archive after its hard dependencies.
+          archive = file.path(tempdir(), "neuroCombat.tar.gz")
+          download.file(
+            "https://codeload.github.com/Jfortin1/neuroCombat_Rpackage/tar.gz/fbec46a61bc92bedb450b0e44addae4ce6afa934",
+            archive,
+            mode = "wb"
           )
+          install.packages(archive, repos = NULL, type = "source")
+          stopifnot(requireNamespace("neuroCombat", quietly = TRUE))
         shell: Rscript {0}
 
       - uses: r-lib/actions/check-r-package@465b7d8e732ca3921382b1674c59bada9cbf3399 # v2
