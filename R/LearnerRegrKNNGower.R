@@ -10,8 +10,9 @@
 #' ordered factors with the same encodings as the classification learner.
 #' Predictions are (optionally inverse-distance) **weighted means** of the
 #' neighbour responses; the (weighted) variance provides an approximate
-#' `se` when requested. If no eligible neighbours exist, prediction fails with
-#' an error; there is no fallback to the training mean/variance.
+#' `se` when requested. If a row has no eligible neighbour, prediction fails
+#' with an error by default; with `no_neighbors = "marginal"` that row
+#' receives the training mean (and the training variance for `se`).
 #'
 #' @section Parameters (in `param_set`):
 #' \describe{
@@ -23,6 +24,11 @@
 #'   \item{`na_handling`}{`character(1)`. `"pairwise"` (skip missing values
 #'     per feature) or `"fail"` to error if training or prediction features
 #'     contain `NA`. Default: `"pairwise"`.}
+#'   \item{`no_neighbors`}{`character(1)`. What to do with a prediction row
+#'     that has no eligible neighbour (fewer than `min_feature_frac` of the
+#'     features observed in common with every training row, e.g. a row with
+#'     all features missing): `"error"` (default) stops; `"marginal"` predicts
+#'     the training mean. Used by the block-wise [impute_knn_graph()].}
 #' }
 #'
 #' @section Prediction:
@@ -60,10 +66,12 @@ LearnerRegrKNNGower = R6::R6Class("LearnerRegrKNNGower",
         min_feature_frac = paradox::p_dbl(lower = 0, upper = 1,
           default = 0.2, tags = "predict"),
         na_handling = paradox::p_fct(levels = c("pairwise", "fail"),
-          default = "pairwise", tags = c("train", "predict"))
+          default = "pairwise", tags = c("train", "predict")),
+        no_neighbors = paradox::p_fct(levels = c("error", "marginal"),
+          default = "error", tags = "predict")
       )
       ps$set_values(k = 5L, weights = "inverse",
-        min_feature_frac = 0.2, na_handling = "pairwise")
+        min_feature_frac = 0.2, na_handling = "pairwise", no_neighbors = "error")
 
       super$initialize(
         id = "regr.knngower",
@@ -143,17 +151,32 @@ LearnerRegrKNNGower = R6::R6Class("LearnerRegrKNNGower",
         )
       )
 
-      # NOTE: call positionally
-      out = knn_predict_regr_gower_cpp(
-        st$Xnum, st$Xcat, st$Xord,
-        enc_te$Xnum, enc_te$Xcat, enc_te$Xord,
-        st$ranges_num, st$y,
-        as.integer(pv$k),
-        pv$weights,
-        as.numeric(pv$min_feature_frac),
-        as.numeric(st$y_mean), # fallback_mean: passed for API compatibility; currently unused by C++ (always errors on no neighbors)
-        as.numeric(st$y_var) # fallback_var:  passed for API compatibility; currently unused by C++ (always errors on no neighbors)
-      )
+      # Rows without an eligible neighbour make the native kernel stop. With
+      # no_neighbors = "marginal" they are excluded from the kernel call and
+      # receive the training mean and variance instead.
+      n_te = nrow(df)
+      ok = if (identical(pv$no_neighbors, "marginal")) {
+        knn_gower_has_neighbors(st, enc_te, pv$min_feature_frac)
+      } else {
+        rep(TRUE, n_te)
+      }
+      out = list(mean = rep(as.numeric(st$y_mean), n_te), var = rep(as.numeric(st$y_var), n_te))
+      if (any(ok)) {
+        te = if (all(ok)) enc_te else knn_gower_subset_rows(enc_te, ok)
+        # NOTE: call positionally
+        fit = knn_predict_regr_gower_cpp(
+          st$Xnum, st$Xcat, st$Xord,
+          te$Xnum, te$Xcat, te$Xord,
+          st$ranges_num, st$y,
+          as.integer(pv$k),
+          pv$weights,
+          as.numeric(pv$min_feature_frac),
+          as.numeric(st$y_mean), # fallback_mean: passed for API compatibility; unused by C++ (it errors on no neighbors)
+          as.numeric(st$y_var) # fallback_var:  passed for API compatibility; unused by C++ (it errors on no neighbors)
+        )
+        out$mean[ok] = as.numeric(fit$mean)
+        out$var[ok] = as.numeric(fit$var)
+      }
 
       response = as.numeric(out$mean)
       if ("se" %in% self$predict_type) {

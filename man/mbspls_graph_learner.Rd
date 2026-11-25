@@ -41,7 +41,8 @@ mbspls_graph_learner(
   seed_bootstrap = NULL,
   workers = 1L,
   id_suffix = NULL,
-  log_env = NULL
+  log_env = NULL,
+  impute_within_blocks = FALSE
 )
 }
 \arguments{
@@ -121,6 +122,11 @@ the ambient RNG, so results are reproducible with \code{\link[=set.seed]{set.see
 \item{id_suffix}{Optional suffix for PipeOp ids.}
 
 \item{log_env}{Shared environment (created if NULL).}
+
+\item{impute_within_blocks}{Logical; impute each block from its own
+features only (see \code{\link[=impute_knn_graph]{impute_knn_graph()}}). Default \code{FALSE}. Last in the
+signature, so that positional calls written for earlier versions keep
+their meaning.}
 }
 \value{
 \link[mlr3pipelines:mlr_learners_graph]{mlr3pipelines::GraphLearner}

@@ -4,14 +4,37 @@
 \alias{impute_knn_graph}
 \title{Create a k-NN Imputation Graph}
 \usage{
-impute_knn_graph(k = 5)
+impute_knn_graph(k = 5, blocks = NULL)
 }
 \arguments{
 \item{k}{Integer, number of neighbors (default 5).}
+
+\item{blocks}{Optional named list of character vectors (feature names per
+block). \code{NULL} (default) imputes every feature from all other features.}
 }
 \value{
 \code{\link[mlr3pipelines:Graph]{mlr3pipelines::Graph}}
 }
 \description{
-k-NN imputation for numeric and factor columns.
+k-NN imputation for numeric and factor columns with the Gower
+k-NN learners \link{LearnerRegrKNNGower} and \link{LearnerClassifKNNGower}. By
+default each feature is imputed from all other features. With \code{blocks},
+each block is imputed from its own features only.
+}
+\details{
+With \code{blocks}, the imputed values of a block depend only on that block's
+observed values (and on the training rows). Imputing a block from the other
+blocks would create association between the block and the others, both in
+the training data and in new data, wherever values are missing. Use
+block-wise imputation whenever the association between blocks is the object
+of inference, as in \code{\link[=mbspls_participation]{mbspls_participation()}}.
+
+In the block-wise graph the learners use \code{no_neighbors = "marginal"}: a row
+with too few observed features in the block to have an eligible neighbour
+(see \code{min_feature_frac}), for example a participant missing the whole
+block, receives the training mean or the most frequent training level.
+Features outside all blocks are imputed from the other features outside all
+blocks. Blocks are declared on the original feature names and resolved as in
+\link{PipeOpMBsPLS}, so factor columns replaced by an encoder still belong to
+their block.
 }

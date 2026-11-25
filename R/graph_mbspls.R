@@ -1,22 +1,88 @@
 #' Create a k-NN Imputation Graph
-#' @description k-NN imputation for numeric and factor columns.
+#' @description k-NN imputation for numeric and factor columns with the Gower
+#'   k-NN learners [LearnerRegrKNNGower] and [LearnerClassifKNNGower]. By
+#'   default each feature is imputed from all other features. With `blocks`,
+#'   each block is imputed from its own features only.
+#' @details
+#' With `blocks`, the imputed values of a block depend only on that block's
+#' observed values (and on the training rows). Imputing a block from the other
+#' blocks would create association between the block and the others, both in
+#' the training data and in new data, wherever values are missing. Use
+#' block-wise imputation whenever the association between blocks is the object
+#' of inference, as in [mbspls_participation()].
+#'
+#' In the block-wise graph the learners use `no_neighbors = "marginal"`: a row
+#' with too few observed features in the block to have an eligible neighbour
+#' (see `min_feature_frac`), for example a participant missing the whole
+#' block, receives the training mean or the most frequent training level.
+#' Features outside all blocks are imputed from the other features outside all
+#' blocks. Blocks are declared on the original feature names and resolved as in
+#' [PipeOpMBsPLS], so factor columns replaced by an encoder still belong to
+#' their block.
 #' @param k Integer, number of neighbors (default 5).
+#' @param blocks Optional named list of character vectors (feature names per
+#'   block). `NULL` (default) imputes every feature from all other features.
 #' @return [`Graph`]
 #' @import mlr3 mlr3pipelines checkmate
 #' @export
-impute_knn_graph = function(k = 5) {
+impute_knn_graph = function(k = 5, blocks = NULL) {
   checkmate::assert_integerish(k, lower = 1, len = 1)
-  imp_num = po("imputelearner",
-    learner = lrn("regr.knngower", k = k),
-    affect_columns = selector_union(selector_type("numeric"), selector_type("integer"))
-  )
-  imp_num$id = "impute_num_knn"
-  imp_fac = po("imputelearner",
-    learner = lrn("classif.knngower", k = k),
-    affect_columns = selector_type("factor")
-  )
-  imp_fac$id = "impute_fac_knn"
-  imp_num %>>% imp_fac
+  num_types = c("numeric", "integer")
+  if (is.null(blocks)) {
+    imp_num = po("imputelearner",
+      learner = lrn("regr.knngower", k = k),
+      affect_columns = selector_union(selector_type("numeric"), selector_type("integer"))
+    )
+    imp_num$id = "impute_num_knn"
+    imp_fac = po("imputelearner",
+      learner = lrn("classif.knngower", k = k),
+      affect_columns = selector_type("factor")
+    )
+    imp_fac$id = "impute_fac_knn"
+    return(imp_num %>>% imp_fac)
+  }
+
+  blocks = mb_normalize_blocks(blocks, .var.name = "blocks")
+  # Columns of one group (a block, or all features outside the blocks),
+  # resolved on the task the PipeOp receives.
+  group_columns = function(group) {
+    force(group)
+    function(task) {
+      resolved = mb_resolve_block_columns(task$feature_names, blocks)
+      if (is.null(group)) {
+        return(setdiff(task$feature_names, unlist(resolved, use.names = FALSE)))
+      }
+      resolved[[group]]
+    }
+  }
+  typed_columns = function(columns, types) {
+    force(columns)
+    force(types)
+    function(task) {
+      cols = columns(task)
+      ft = task$feature_types
+      cols[ft$type[match(cols, ft$id)] %in% types]
+    }
+  }
+  groups = c(lapply(names(blocks), identity), list(NULL))
+  ops = list()
+  for (group in groups) {
+    columns = group_columns(group)
+    suffix = if (is.null(group)) "unblocked" else paste0("block_", group)
+    ops[[length(ops) + 1L]] = po("imputelearner",
+      id = paste0("impute_num_knn_", suffix),
+      learner = lrn("regr.knngower", k = k, no_neighbors = "marginal"),
+      affect_columns = typed_columns(columns, num_types),
+      context_columns = columns
+    )
+    ops[[length(ops) + 1L]] = po("imputelearner",
+      id = paste0("impute_fac_knn_", suffix),
+      learner = lrn("classif.knngower", k = k, no_neighbors = "marginal"),
+      affect_columns = typed_columns(columns, "factor"),
+      context_columns = columns
+    )
+  }
+  Reduce(`%>>%`, ops)
 }
 
 
@@ -37,6 +103,11 @@ impute_knn_graph = function(k = 5) {
 #' @param keep_site_col Keep site column after correction?
 #' @param k k for kNN imputation (default 5).
 #' @param id_suffix Optional suffix for PipeOp ids.
+#' @param impute_within_blocks Logical; impute each block from its own
+#'   features only (see [impute_knn_graph()]). Default `FALSE` imputes every
+#'   feature from all other features. Use `TRUE` for [mbspls_participation()].
+#'   Last in the signature, so that positional calls written for earlier
+#'   versions keep their meaning.
 #' @return [`Graph`]
 #' @import mlr3 mlr3pipelines checkmate
 #' @export
@@ -47,7 +118,8 @@ mbspls_preproc_graph = function(
   site_correction_methods = list(),
   keep_site_col = FALSE,
   k = 5,
-  id_suffix = NULL
+  id_suffix = NULL,
+  impute_within_blocks = FALSE
 ) {
   blocks = mb_graph_blocks(blocks = blocks, task = task, context = "mbspls_preproc_graph")
   assert_list(blocks, types = "character", names = "unique")
@@ -71,8 +143,9 @@ mbspls_preproc_graph = function(
     selector_all()
   }
 
+  checkmate::assert_flag(impute_within_blocks)
   ppl_convert_types = ppl("convert_types", "character", "factor")
-  ppl_impute = ppl("imputeknn", k = k)
+  ppl_impute = ppl("imputeknn", k = k, blocks = if (impute_within_blocks) blocks else NULL)
 
   if (!is.null(id_suffix)) {
     ppl_convert_types$update_ids(postfix = paste0("_", id_suffix))
@@ -152,6 +225,10 @@ mbspls_preproc_graph = function(
 #'   the ambient RNG, so results are reproducible with [set.seed()].
 #' @param id_suffix Optional suffix for PipeOp ids.
 #' @param log_env Shared environment (created if NULL).
+#' @param impute_within_blocks Logical; impute each block from its own
+#'   features only (see [impute_knn_graph()]). Default `FALSE`. Last in the
+#'   signature, so that positional calls written for earlier versions keep
+#'   their meaning.
 #'
 #' @return [mlr3pipelines::Graph]
 #' @import mlr3 mlr3pipelines checkmate
@@ -194,7 +271,8 @@ mbspls_graph = function(
   seed_bootstrap = NULL,
   workers = 1L,
   id_suffix = NULL,
-  log_env = NULL
+  log_env = NULL,
+  impute_within_blocks = FALSE
 ) {
   blocks = mb_graph_blocks(blocks = blocks, task = task, context = "mbspls_graph")
   checkmate::assert_list(blocks, types = "character", names = "unique")
@@ -270,6 +348,7 @@ mbspls_graph = function(
     site_correction_methods = site_correction_methods,
     keep_site_col = keep_site_col,
     k = k,
+    impute_within_blocks = impute_within_blocks,
     id_suffix = id_suffix
   ) %>>%
     po("mbspls",
@@ -358,7 +437,8 @@ mbspls_graph_learner = function(
   seed_bootstrap = NULL,
   workers = 1L,
   id_suffix = NULL,
-  log_env = NULL
+  log_env = NULL,
+  impute_within_blocks = FALSE
 ) {
   checkmate::assert_class(learner, "Learner")
 
@@ -370,6 +450,7 @@ mbspls_graph_learner = function(
     keep_site_col = keep_site_col,
     ncomp = ncomp,
     k = k,
+    impute_within_blocks = impute_within_blocks,
     performance_metric = performance_metric,
     correlation_method = correlation_method,
     c_matrix = c_matrix,

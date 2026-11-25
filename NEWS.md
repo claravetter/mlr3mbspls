@@ -342,6 +342,17 @@ versions.
 - `classif.knngower` and `regr.knngower` share one feature encoder, reject
   missing prediction features under `na_handling = "fail"` and handle missing
   values of single-level ordered features consistently.
+- `impute_knn_graph()` gains `blocks`, and `mbspls_preproc_graph()`,
+  `mbspls_graph()` and `mbspls_graph_learner()` gain `impute_within_blocks`
+  as their last argument, so that existing positional calls keep their
+  meaning: each block is then imputed from its own features only, so that
+  imputation cannot create association between blocks. The default still
+  imputes every feature from all features.
+- `regr.knngower` and `classif.knngower` gain `no_neighbors`. The default
+  `"error"` keeps the previous behaviour; `"marginal"` predicts the training
+  mean or class frequencies for rows without an eligible neighbour (used by the
+  block-wise imputation graph, e.g. for participants missing a whole block).
+
 
 ## Tuning and nested resampling
 

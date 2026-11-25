@@ -15,8 +15,9 @@ A \emph{k}-nearest neighbours regressor using \strong{Gower distance}
 ordered factors with the same encodings as the classification learner.
 Predictions are (optionally inverse-distance) \strong{weighted means} of the
 neighbour responses; the (weighted) variance provides an approximate
-\code{se} when requested. If no eligible neighbours exist, prediction fails with
-an error; there is no fallback to the training mean/variance.
+\code{se} when requested. If a row has no eligible neighbour, prediction fails
+with an error by default; with \code{no_neighbors = "marginal"} that row
+receives the training mean (and the training variance for \code{se}).
 }
 \details{
 k-Nearest Neighbours with Gower Distance - Regression
@@ -32,6 +33,11 @@ comparable features required for a neighbour. Default: \code{0.2}.}
 \item{\code{na_handling}}{\code{character(1)}. \code{"pairwise"} (skip missing values
 per feature) or \code{"fail"} to error if training or prediction features
 contain \code{NA}. Default: \code{"pairwise"}.}
+\item{\code{no_neighbors}}{\code{character(1)}. What to do with a prediction row
+that has no eligible neighbour (fewer than \code{min_feature_frac} of the
+features observed in common with every training row, e.g. a row with
+all features missing): \code{"error"} (default) stops; \code{"marginal"} predicts
+the training mean. Used by the block-wise \code{\link[=impute_knn_graph]{impute_knn_graph()}}.}
 }
 }
 
