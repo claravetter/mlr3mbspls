@@ -219,6 +219,17 @@ versions.
   decision ("participates at `r` or more centres"), optionally with the
   weights of a reference signature; `autoplot()` draws the feature-level
   signature, for several analyses side by side with `compare`.
+- New `mbspls_pair_heldout_tests()`: held-out test of every pair of blocks at
+  one centre or external cohort (the correlation of the two held-out scores,
+  oriented by the training correlation, with an exact one-sided permutation
+  p-value, optionally within strata). New `as_mbspls_pairs()` decides for
+  every pair simultaneously over all pairs: at level `alpha / P` for one
+  cohort, or by the fixed-threshold count over `S` sites at `alpha / (P S)`.
+  Its `autoplot()` method draws the pairs as a network (`type = "network"`,
+  edge width following the held-out correlation, solid for significant pairs)
+  or as training versus held-out correlations grouped by kind of pair
+  (`type = "pairs"`), which shows, for example, blocks from the same
+  measurement that participate only through each other.
 - New `mb_permutation_test()`: a complete-analysis permutation engine for one
   pre-specified statistic. It permutes the raw selected blocks, reruns a
   user-supplied analysis on the observed data and on every shuffle, and
