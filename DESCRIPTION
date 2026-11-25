@@ -15,8 +15,9 @@ Description: Integration of multi-block sparse partial least squares (MB-sPLS)
     integrated with the mlr3 ecosystem. It also includes multiblock task
     quality-control and model-summary helpers for reporting and interpretation.
 License: LGPL-3
-URL: https://mlr3.mlr-org.com, https://github.com/coorsaa/mlr3mbspls
-BugReports: https://github.com/coorsaa/mlr3mbspls/issues
+URL: https://claravetter.github.io/mlr3mbspls/,
+    https://github.com/claravetter/mlr3mbspls, https://mlr3.mlr-org.com
+BugReports: https://github.com/claravetter/mlr3mbspls/issues
 Encoding: UTF-8
 Config/testthat/edition: 3
 Config/testthat/parallel: false

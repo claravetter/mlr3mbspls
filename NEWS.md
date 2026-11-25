@@ -468,6 +468,10 @@ versions.
   builds vignettes on request, stops when the archive contains files outside
   the package layout, and runs tests against the installed archive in a fresh
   R process.
+- The repository moved to <https://github.com/claravetter/mlr3mbspls>. `DESCRIPTION`,
+  `CITATION`, the README badges and installation commands and the contributing
+  guide point there, and `URL` lists the package website
+  <https://claravetter.github.io/mlr3mbspls/>.
 
 # mlr3mbspls 0.3.4
 
