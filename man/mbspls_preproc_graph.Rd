@@ -11,7 +11,8 @@ mbspls_preproc_graph(
   site_correction_methods = list(),
   keep_site_col = FALSE,
   k = 5,
-  id_suffix = NULL
+  id_suffix = NULL,
+  impute_within_blocks = FALSE
 )
 }
 \arguments{
@@ -35,6 +36,12 @@ Defaults to \code{list()}.}
 \item{k}{k for kNN imputation (default 5).}
 
 \item{id_suffix}{Optional suffix for PipeOp ids.}
+
+\item{impute_within_blocks}{Logical; impute each block from its own
+features only (see \code{\link[=impute_knn_graph]{impute_knn_graph()}}). Default \code{FALSE} imputes every
+feature from all other features. Use \code{TRUE} for \code{\link[=mbspls_participation]{mbspls_participation()}}.
+Last in the signature, so that positional calls written for earlier
+versions keep their meaning.}
 }
 \value{
 \code{\link[mlr3pipelines:Graph]{mlr3pipelines::Graph}}

@@ -12,7 +12,7 @@ with the `mlr3` ecosystem. It provides unsupervised and supervised graph
 pipelines, block-aware tasks, nested resampling, descriptive bootstrap
 stability, model summaries, visualisations, and a native C++/Armadillo backend.
 
-Development version: **0.4.0**
+Development version: **0.5.0**
 
 ## Inference boundary
 
@@ -541,7 +541,7 @@ If you use `mlr3mbspls` in academic work, cite:
 
 ```text
 Vetter CS, Coors S (2026). mlr3mbspls: Multi-Block Sparse Partial Least
-Squares for mlr3. R package version 0.4.0.
+Squares for mlr3. R package version 0.5.0.
 https://github.com/claravetter/mlr3mbspls
 ```
 

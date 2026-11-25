@@ -32,7 +32,8 @@ The encoder is shared with \link{LearnerRegrKNNGower}; ranges and level sets are
 fitted on the training data and reused unchanged at prediction.
 
 If no neighbour has sufficient comparable features, prediction fails with
-an error; there is no fallback to the training class priors.
+an error by default; with \code{no_neighbors = "marginal"} that row receives the
+training class frequencies (and the most frequent training class).
 }
 \section{Parameters (in \code{param_set})}{
 
@@ -46,6 +47,10 @@ comparable for a neighbour to be eligible. Default: \code{0.2}.}
 \item{\code{na_handling}}{\code{character(1)}. \code{"pairwise"} to skip per-feature
 missing values (Gower), or \code{"fail"} to error if training or prediction
 features contain \code{NA}. Default: \code{"pairwise"}.}
+\item{\code{no_neighbors}}{\code{character(1)}. What to do with a prediction row
+that has no eligible neighbour: \code{"error"} (default) stops;
+\code{"marginal"} predicts the training class frequencies. Used by the
+block-wise \code{\link[=impute_knn_graph]{impute_knn_graph()}}.}
 }
 }
 

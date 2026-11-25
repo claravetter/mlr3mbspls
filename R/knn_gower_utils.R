@@ -105,3 +105,53 @@ knn_gower_encode_blocks = function(df, num_cols, cat_cols, ord_cols, ref = NULL)
     ord_levels = ord_levels
   )
 }
+
+#' Test rows with at least one eligible Gower neighbour
+#'
+#' Applies the eligibility rule of the native kernels: a training row is an
+#' eligible neighbour of a test row when both rows have at least
+#' `max(1, ceiling(min_feature_frac * p))` features observed in common, where
+#' `p` is the total number of features. An unseen test level of an unordered
+#' factor counts as observed (it is compared, as a mismatch).
+#'
+#' @param enc_train,enc_test (`list()`) Encoded matrices `Xnum`, `Xcat` and
+#'   `Xord`, as returned by [knn_gower_encode_blocks()].
+#' @param min_feature_frac (`numeric(1)`) Minimum fraction of comparable
+#'   features.
+#' @param chunk (`integer(1)`) Number of test rows processed at once.
+#' @return A logical vector with one element per test row.
+#' @noRd
+knn_gower_has_neighbors = function(enc_train, enc_test, min_feature_frac, chunk = 1000L) {
+  observed = function(e) {
+    o = cbind(is.finite(e$Xnum), e$Xcat != 0L, is.finite(e$Xord))
+    storage.mode(o) = "double"
+    o
+  }
+  o_train = observed(enc_train)
+  o_test = observed(enc_test)
+  m = nrow(o_test)
+  p = ncol(o_train)
+  if (!m) {
+    return(logical(0))
+  }
+  if (!p || !nrow(o_train)) {
+    return(rep(FALSE, m))
+  }
+  min_cnt = max(1, ceiling(max(0, min(1, min_feature_frac)) * p))
+  out = logical(m)
+  for (start in seq.int(1L, m, by = chunk)) {
+    idx = start:min(m, start + chunk - 1L)
+    out[idx] = rowSums(tcrossprod(o_test[idx, , drop = FALSE], o_train) >= min_cnt) > 0
+  }
+  out
+}
+
+#' Subset the rows of encoded Gower matrices
+#' @noRd
+knn_gower_subset_rows = function(enc, rows) {
+  list(
+    Xnum = enc$Xnum[rows, , drop = FALSE],
+    Xcat = enc$Xcat[rows, , drop = FALSE],
+    Xord = enc$Xord[rows, , drop = FALSE]
+  )
+}

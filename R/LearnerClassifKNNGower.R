@@ -24,7 +24,8 @@
 #' fitted on the training data and reused unchanged at prediction.
 #'
 #' If no neighbour has sufficient comparable features, prediction fails with
-#' an error; there is no fallback to the training class priors.
+#' an error by default; with `no_neighbors = "marginal"` that row receives the
+#' training class frequencies (and the most frequent training class).
 #'
 #' @section Parameters (in `param_set`):
 #' \describe{
@@ -37,6 +38,10 @@
 #'   \item{`na_handling`}{`character(1)`. `"pairwise"` to skip per-feature
 #'     missing values (Gower), or `"fail"` to error if training or prediction
 #'     features contain `NA`. Default: `"pairwise"`.}
+#'   \item{`no_neighbors`}{`character(1)`. What to do with a prediction row
+#'     that has no eligible neighbour: `"error"` (default) stops;
+#'     `"marginal"` predicts the training class frequencies. Used by the
+#'     block-wise [impute_knn_graph()].}
 #' }
 #'
 #' @section Prediction:
@@ -75,10 +80,12 @@ LearnerClassifKNNGower = R6::R6Class("LearnerClassifKNNGower",
         min_feature_frac = paradox::p_dbl(lower = 0, upper = 1,
           default = 0.2, tags = "predict"),
         na_handling = paradox::p_fct(levels = c("pairwise", "fail"),
-          default = "pairwise", tags = c("train", "predict"))
+          default = "pairwise", tags = c("train", "predict")),
+        no_neighbors = paradox::p_fct(levels = c("error", "marginal"),
+          default = "error", tags = "predict")
       )
       ps$set_values(k = 5L, weights = "inverse",
-        min_feature_frac = 0.2, na_handling = "pairwise")
+        min_feature_frac = 0.2, na_handling = "pairwise", no_neighbors = "error")
 
       super$initialize(
         id = "classif.knngower",
@@ -157,18 +164,29 @@ LearnerClassifKNNGower = R6::R6Class("LearnerClassifKNNGower",
         )
       )
 
-      # NOTE: pass arguments POSITIONALLY (no names) to avoid "unused arguments"
-      out = knn_predict_classif_gower_cpp(
-        st$Xnum, st$Xcat, st$Xord,
-        enc_te$Xnum, enc_te$Xcat, enc_te$Xord,
-        st$ranges_num, st$y_int0,
-        as.integer(pv$k),
-        pv$weights,
-        as.numeric(pv$min_feature_frac),
-        st$priors
-      )
-
-      prob = as.matrix(out$prob)
+      # Rows without an eligible neighbour make the native kernel stop. With
+      # no_neighbors = "marginal" they receive the training class frequencies.
+      n_te = nrow(df)
+      ok = if (identical(pv$no_neighbors, "marginal")) {
+        knn_gower_has_neighbors(st, enc_te, pv$min_feature_frac)
+      } else {
+        rep(TRUE, n_te)
+      }
+      prob = matrix(st$priors, nrow = n_te, ncol = length(st$class_levels), byrow = TRUE)
+      if (any(ok)) {
+        te = if (all(ok)) enc_te else knn_gower_subset_rows(enc_te, ok)
+        # NOTE: pass arguments POSITIONALLY (no names) to avoid "unused arguments"
+        out = knn_predict_classif_gower_cpp(
+          st$Xnum, st$Xcat, st$Xord,
+          te$Xnum, te$Xcat, te$Xord,
+          st$ranges_num, st$y_int0,
+          as.integer(pv$k),
+          pv$weights,
+          as.numeric(pv$min_feature_frac),
+          st$priors
+        )
+        prob[ok, ] = as.matrix(out$prob)
+      }
       colnames(prob) = st$class_levels
 
       response = factor(st$class_levels[max.col(prob, ties.method = "first")],
