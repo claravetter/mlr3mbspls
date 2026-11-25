@@ -1,4 +1,92 @@
-# mlr3mbspls 0.4.0 (development)
+# mlr3mbspls 0.5.0
+
+Changes since 0.4.0. New functions test on held-out data whether blocks,
+single features and pairs of blocks participate in a multiblock component.
+Existing functions keep their defaults and results.
+
+## Confirmatory inference
+
+- New `mbspls_participation()`: held-out, leave-one-centre-out test of block
+  participation. For every block of a component and every held-out centre it
+  tests whether the block's held-out score is associated with the composite of
+  the other blocks' held-out scores, with weights learned at the other centres
+  (exact permutation p-values within the centre, optionally within strata).
+  The number of centres with `p <= alpha / S` (`r_count`, and
+  `r_count_simultaneous` with `alpha / (K S)` for `K` blocks) is a lower
+  confidence bound for the number of centres at which the block participates.
+  It stays valid although whether a block participates at one centre depends
+  on the weights learned at the others. The Bonferroni partial conjunction
+  bound `r_hat` (unadjusted and simultaneous) is also reported; it is valid
+  when the null hypotheses do not depend on the training data, for example
+  for a frozen signature tested at independent centres. The learner may be a
+  GraphLearner with fixed budgets, an AutoTuner that tunes within each
+  training set, or a fitting function.
+- New `mbspls_partial_conjunction()`: Bonferroni partial conjunction p-values
+  and lower bounds from a matrix of centre-level p-values, valid under
+  arbitrary dependence for hypotheses fixed in advance, and the
+  fixed-threshold count `r_count` of p-values at most `level / S`, which stays
+  valid when the hypotheses depend on the data.
+- New `as_mbspls_participation()`: builds the same participation summary
+  from centre-level held-out results computed elsewhere, for example by a
+  custom leave-one-centre-out pipeline or in one external validation cohort.
+- New `autoplot()` method for participation results. `type = "centres"` shows
+  the held-out correlation of every block at every centre (filled where
+  `p <= alpha`, point area proportional to centre size) with the bounds in
+  columns (`rule = "count"`, the default, or `rule = "partial_conjunction"`),
+  optionally for further analyses through `compare`;
+  `type = "heldout"` contrasts training and held-out correlations per block.
+  With `compare`, `type = "heldout"` draws several analyses side by side, one
+  colour each. `order` and `limits` give several plots the same block order and axis, and
+  `unit` sets the word for the held-out unit in the labels (for example
+  `c("site", "sites")`).
+- New `mbspls_feature_heldout_tests()`: the feature-level counterpart of the
+  participation test. At one held-out centre it tests, for every feature of
+  every block, whether the feature's held-out values are associated with the
+  composite of the other blocks' held-out scores (exact permutation p-values,
+  optionally within strata, or across modalities with `modality`). Training
+  and held-out data must have the same blocks, and the same columns within
+  every block, in the same order.
+- New `as_mbspls_feature_participation()`: combines the centre-level feature
+  tests into a replication bound per feature and a false discovery rate
+  decision ("participates at `r` or more centres"), optionally with the
+  weights of a reference signature; `autoplot()` draws the feature-level
+  signature, for several analyses side by side with `compare`.
+- New `mbspls_pair_heldout_tests()`: held-out test of every pair of blocks at
+  one centre or external cohort (the correlation of the two held-out scores,
+  oriented by the training correlation, with an exact one-sided permutation
+  p-value, optionally within strata). New `as_mbspls_pairs()` decides for
+  every pair simultaneously over all pairs: at level `alpha / P` for one
+  cohort, or by the fixed-threshold count over `S` sites at `alpha / (P S)`.
+  Its `autoplot()` method draws the pairs as a network (`type = "network"`,
+  edge width following the held-out correlation, solid for significant pairs)
+  or as training versus held-out correlations grouped by kind of pair
+  (`type = "pairs"`), which shows, for example, blocks from the same
+  measurement that participate only through each other.
+
+## Preprocessing
+
+- `impute_knn_graph()` gains `blocks`, and `mbspls_preproc_graph()`,
+  `mbspls_graph()` and `mbspls_graph_learner()` gain `impute_within_blocks`
+  as their last argument, so that existing positional calls keep their
+  meaning: each block is then imputed from its own features only, so that
+  imputation cannot create association between blocks. The default still
+  imputes every feature from all features.
+- `regr.knngower` and `classif.knngower` gain `no_neighbors`. The default
+  `"error"` keeps the previous behaviour; `"marginal"` predicts the training
+  mean or class frequencies for rows without an eligible neighbour (used by the
+  block-wise imputation graph, e.g. for participants missing a whole block).
+
+## Packaging and development
+
+- The repository moved to <https://github.com/claravetter/mlr3mbspls>. `DESCRIPTION`,
+  `CITATION`, the README badges and installation commands and the contributing
+  guide point there, and `URL` lists the package website
+  <https://claravetter.github.io/mlr3mbspls/>.
+- Continuous integration installs `neuroCombat` from its source archive,
+  because `remotes::install_github()` cannot resolve its `Remotes` field, and
+  runs `R CMD check` and pkgdown for pull requests against any branch.
+
+# mlr3mbspls 0.4.0
 
 Changes since 0.3.4. Several fixes change numerical results: fitted weights,
 scores, objectives, explained variances, component counts, tuned sparsity
@@ -174,62 +262,6 @@ versions.
 
 ## Confirmatory inference
 
-- New `mbspls_participation()`: held-out, leave-one-centre-out test of block
-  participation. For every block of a component and every held-out centre it
-  tests whether the block's held-out score is associated with the composite of
-  the other blocks' held-out scores, with weights learned at the other centres
-  (exact permutation p-values within the centre, optionally within strata).
-  The number of centres with `p <= alpha / S` (`r_count`, and
-  `r_count_simultaneous` with `alpha / (K S)` for `K` blocks) is a lower
-  confidence bound for the number of centres at which the block participates.
-  It stays valid although whether a block participates at one centre depends
-  on the weights learned at the others. The Bonferroni partial conjunction
-  bound `r_hat` (unadjusted and simultaneous) is also reported; it is valid
-  when the null hypotheses do not depend on the training data, for example
-  for a frozen signature tested at independent centres. The learner may be a
-  GraphLearner with fixed budgets, an AutoTuner that tunes within each
-  training set, or a fitting function.
-- New `mbspls_partial_conjunction()`: Bonferroni partial conjunction p-values
-  and lower bounds from a matrix of centre-level p-values, valid under
-  arbitrary dependence for hypotheses fixed in advance, and the
-  fixed-threshold count `r_count` of p-values at most `level / S`, which stays
-  valid when the hypotheses depend on the data.
-- New `as_mbspls_participation()`: builds the same participation summary
-  from centre-level held-out results computed elsewhere, for example by a
-  custom leave-one-centre-out pipeline or in one external validation cohort.
-- New `autoplot()` method for participation results. `type = "centres"` shows
-  the held-out correlation of every block at every centre (filled where
-  `p <= alpha`, point area proportional to centre size) with the bounds in
-  columns (`rule = "count"`, the default, or `rule = "partial_conjunction"`),
-  optionally for further analyses through `compare`;
-  `type = "heldout"` contrasts training and held-out correlations per block.
-  With `compare`, `type = "heldout"` draws several analyses side by side, one
-  colour each. `order` and `limits` give several plots the same block order and axis, and
-  `unit` sets the word for the held-out unit in the labels (for example
-  `c("site", "sites")`).
-- New `mbspls_feature_heldout_tests()`: the feature-level counterpart of the
-  participation test. At one held-out centre it tests, for every feature of
-  every block, whether the feature's held-out values are associated with the
-  composite of the other blocks' held-out scores (exact permutation p-values,
-  optionally within strata, or across modalities with `modality`). Training
-  and held-out data must have the same blocks, and the same columns within
-  every block, in the same order.
-- New `as_mbspls_feature_participation()`: combines the centre-level feature
-  tests into a replication bound per feature and a false discovery rate
-  decision ("participates at `r` or more centres"), optionally with the
-  weights of a reference signature; `autoplot()` draws the feature-level
-  signature, for several analyses side by side with `compare`.
-- New `mbspls_pair_heldout_tests()`: held-out test of every pair of blocks at
-  one centre or external cohort (the correlation of the two held-out scores,
-  oriented by the training correlation, with an exact one-sided permutation
-  p-value, optionally within strata). New `as_mbspls_pairs()` decides for
-  every pair simultaneously over all pairs: at level `alpha / P` for one
-  cohort, or by the fixed-threshold count over `S` sites at `alpha / (P S)`.
-  Its `autoplot()` method draws the pairs as a network (`type = "network"`,
-  edge width following the held-out correlation, solid for significant pairs)
-  or as training versus held-out correlations grouped by kind of pair
-  (`type = "pairs"`), which shows, for example, blocks from the same
-  measurement that participate only through each other.
 - New `mb_permutation_test()`: a complete-analysis permutation engine for one
   pre-specified statistic. It permutes the raw selected blocks, reruns a
   user-supplied analysis on the observed data and on every shuffle, and
@@ -398,17 +430,6 @@ versions.
 - `classif.knngower` and `regr.knngower` share one feature encoder, reject
   missing prediction features under `na_handling = "fail"` and handle missing
   values of single-level ordered features consistently.
-- `impute_knn_graph()` gains `blocks`, and `mbspls_preproc_graph()`,
-  `mbspls_graph()` and `mbspls_graph_learner()` gain `impute_within_blocks`
-  as their last argument, so that existing positional calls keep their
-  meaning: each block is then imputed from its own features only, so that
-  imputation cannot create association between blocks. The default still
-  imputes every feature from all features.
-- `regr.knngower` and `classif.knngower` gain `no_neighbors`. The default
-  `"error"` keeps the previous behaviour; `"marginal"` predicts the training
-  mean or class frequencies for rows without an eligible neighbour (used by the
-  block-wise imputation graph, e.g. for participants missing a whole block).
-
 
 ## Tuning and nested resampling
 
@@ -535,10 +556,6 @@ versions.
   builds vignettes on request, stops when the archive contains files outside
   the package layout, and runs tests against the installed archive in a fresh
   R process.
-- The repository moved to <https://github.com/claravetter/mlr3mbspls>. `DESCRIPTION`,
-  `CITATION`, the README badges and installation commands and the contributing
-  guide point there, and `URL` lists the package website
-  <https://claravetter.github.io/mlr3mbspls/>.
 
 # mlr3mbspls 0.3.4
 
